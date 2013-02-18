@@ -1,0 +1,148 @@
+\documentclass[a4paper,10pt]{article}
+%\documentclass[a4paper,10pt]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[colorlinks=true, linkcolor=black]{hyperref}
+\usepackage{setspace}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{pxfonts}
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes,automata,backgrounds,petri}
+
+\title{Model checking locale per aCTL}
+\author{A. Rizzo, M. Bruni}
+\date{18-02-2013}
+
+\pdfinfo{
+  /Title    (Model checking locale per aCTL)
+  /Author   (A. Rizzo, M. Bruni)
+  /Creator  (A. Rizzo, M. Bruni)
+  /Producer ()
+  /Subject  ()
+  /Keywords ()
+}
+
+\definecolor{listinggray}{gray}{0.92}
+% % % % % % % % % % % % % %
+%% PRISM CODE LISTING ********************************************* 
+
+\definecolor{prismgreen}{rgb}{0, 0.6, 0} 
+
+\lstdefinelanguage{Checker}{ % syntax highlight via font 
+        basicstyle=\color{black}\tiny\ttfamily, % small true type font (like courier) 
+        keywords={bool, switch, foreach, return, if, then, else, var, case},
+        keywordstyle={\bfseries\color{black}}, 
+        numberstyle=\tiny\color{black}, 
+        comment=[l]{//}, 
+        morecomment=[s]{/*}{*/}, % single and multi-line 
+        commentstyle= \color{prismgreen}\raggedleft, % dark green 
+        tabsize=4, % tab treatment (going to be fixed in Prism) 
+        captionpos=b, % put captions at the bottom 
+        escapechar=@ % write LaTeX comments escaped by @ symbol 
+} 
+\newcommand*{\Comment}[1]{\hfill\makebox[3.0cm][l]{#1}}%
+\renewcommand{\lstlistingname}{Code}
+
+%% END PRISM CODE LISTING ********************************************* 
+
+\definecolor{light-gray}{gray}{0.85}
+\definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
+
+% stile per linguaggio PRISM
+\lstset{ 
+	backgroundcolor=\color{light-gray},
+	language={Checker}, 
+	numbers=left, 
+	frame=shadowbox, %lines,
+	rulesepcolor=\color{black}, 
+	rulecolor=\color{black},
+	breaklines=true, 
+	breakatwhitespace=true,
+	firstnumber=1, 
+	firstline=1,
+	lastline=25,
+	xleftmargin=20pt
+}
+
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%		 Frontespizio		%%%%%%%%%%%%%%%%%
+
+\begin{titlepage}
+\thispagestyle{empty}
+\topmargin=1cm
+\large
+
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=0.075]{img/Stemma.jpg}
+\end{figure}
+
+\begin{center}
+
+UNIVERSITÀ DEGLI STUDI DI FIRENZE
+\vspace{0.5cm}
+
+Laurea Magistrale in Ingegneria Informatica
+\\
+\normalsize
+Corso di Metodi Formali per la Verifica di Sistemi
+\vspace{4cm}
+
+\begin{huge}
+Model checking locale per aCTL
+\end{huge}
+
+\vspace{0.5cm}
+
+A. Rizzo, M. Bruni
+
+\vspace{6cm}
+\rule{6cm}{.4pt}
+\\
+Anno accademico 2012/2013
+\end{center}
+\end{titlepage}
+
+%%%%%%%%%%%%%%%%%		End Frontespizio		%%%%%%%%%%%%%%%%%
+
+\doublespacing
+
+\tableofcontents % Indice
+
+\vspace{4cm}
+%Insert Creative Commons Artwork
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\begin{center}
+\leavevmode
+%Insert image file name below "cc-by-nc-nd.png"
+\includegraphics[width=1in]{img/by-nc.png}
+\end{center}
+\label{fig:cc}
+%insert a link to the licence and its description below
+\begin{center}
+\scriptsize{This document is licensed under a \href{http://creativecommons.org/licenses/by-nc/3.0/}{Attribution-NonCommercial 3.0 Unported.}}
+\end{center}
+\clearpage
+
+\include{Introduzione}
+\include{LTS}
+\include{aCTL}
+\include{Model-Checking}
+\include{algoritmi}
+
+\doublespacing
+
+\pagebreak
+
+\addcontentsline{toc}{section}{Bibliografia}
+\bibliographystyle{IEEEtran}
+\bibliography{bibliography}
+
+\end{document}

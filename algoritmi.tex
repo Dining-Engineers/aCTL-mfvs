@@ -1,0 +1,236 @@
+\section{Algoritmi}
+
+L'obiettivo del model checking locale per aCTL è il seguente: data una struttura $\mathcal{T}$ e una formula aCTL \emph{f},  determinare se $\mathcal{T}$ soddisfa \emph{f}.
+Verrà adesso introdotta l'implementazione di un algoritmo per la risoluzione del problema.
+\\
+
+\noindent L'algoritmo dovrà soddisfare le seguenti specifiche:
+\begin{itemize}
+\item input: un LTS $\mathcal{T}$, uno stato $s$, una formula CTL $f$;
+\item output: true $ \Leftrightarrow \; \mathcal{T}$, $s$ $\models$ $f$.
+\end{itemize}
+L'algoritmo dovrà inoltre operare secondo una modalità \textit{goal-oriented}, e cioè con approccio top-down, per decidere se $\mathcal{T}$, $s$ $\models$ $f$. Gli stati che dovranno essere controllati durante la sua esecuzione dovranno essere quindi solo quelli strettamente necessari a raggiungere lo stato di goal.
+
+
+Per poter eseguire l'algoritmo nel minor tempo possibile si è reso necessario l'utilizzo di una variabile globale per tenere traccia di tutte le informazioni raccolte durante l'esecuzione.
+Questa struttura è stata definita nel modo seguente:
+
+\begin{equation}
+info: S \; x \; sub(f) \rightarrow \lbrace 0, 1, \bullet \rbrace,
+\end{equation}
+
+dove $sub(f)$ rappresenta l'insieme delle sottoformule di $f$.
+I valori assumibili dalla variabile rappresentano la soddisfacibilità di una determinata formula.
+Se uno stato $s$ $\in$ S non soddisfa la formula $f$, si avrà di conseguenza che \mbox{info($s$, $f$) = 0}. Nel caso in cui $s$ soddisfi la formula $f$ si avrà che \mbox{info($s$, $f$) = 1}, mentre nel caso in cui non sia ancora stato possibile determinarlo si avrà  \mbox{info($s$, $f$) = $\bullet$}.
+
+Formalmente il significato della variabile info è dato dalla seguente invariante che dovrà essere sempre valida durante l'esecuzione dell'algoritmo:
+
+\begin{equation}
+I \stackrel{def}{=} \forall s,f: \; (info(s, f) = 0 \Rightarrow \mathcal{T}, s \nvDash  f)  \wedge (info(s, f) = 1  \Rightarrow \mathcal{T},s \models f)
+\end{equation}
+
+Viene mostrato in seguito il codice relativo allo schema generale dell'algoritmo:
+\\
+
+\begin{lstlisting}[mathescape, caption= Schema generale dell'algoritmo, label=check]
+Check(s, $\Phi$) $\lbrace$	
+	if info(s, $\Phi$) $\neq \bullet$
+		return;	
+	switch($\Phi$) $\lbrace	$
+		case a: 
+			if s $\in \mathbb{L}$(p) then
+				info(s, $\Phi$) := 1;
+			else
+				info(s, $\Phi$) := 0;
+		case $\neg \; \Phi'$:
+			Check(s, $\Phi'$);
+			info(s, $\neg \; \Phi'$) = $\neg$ info(s, $\Phi'$);
+		case $\Phi_1 \wedge \Phi_2$:
+			Check(s, $\Phi_1$);
+			if info(s, $\Phi_1$) = 0 then
+				info(s, $\Phi_1 \wedge \Phi_2$) = 0;
+			else $\lbrace$
+				Check(s, $\Phi_2$);
+				info(s, $\Phi_1 \wedge \Phi_2$) = info(s, $\Phi_2$);
+			$\rbrace$
+		case $\exists\chi_A\Phi'$:
+			foreach $s' \in \lbrace s' | \exists \alpha \in A: s  \xrightarrow{ \alpha } s' \rbrace \lbrace$
+				Check($s', \Phi'$);
+				if (info($s', \Phi'$)==1) $\lbrace$
+					info($s', \exists\chi_A\Phi'$) = 1;
+					return;
+				$\rbrace$
+			$\rbrace$
+			info(s, $\exists\chi_A\Phi'$) = 0;
+		case $\forall \chi_A\Phi'$:
+			init(s) = $\lbrace \alpha | \exists s': s\xrightarrow{\alpha} s' \rbrace$
+			if ( init(s) $\nsubseteq$ A ) then $\lbrace$
+				info(s, $\forall \chi_A\Phi'$) = 0;
+				return;
+			$\rbrace$
+			foreach $s' \in \lbrace s' | \exists \alpha \in A: s  \xrightarrow{ \alpha } s' \rbrace \lbrace$
+				Check($s', \Phi'$);
+				if (info($s', \Phi'$)==0) then $\lbrace$
+					info($s', \exists\chi_A\Phi'$) = 0;
+					return;
+				$\rbrace$
+			$\rbrace$
+			info(s, $\exists\chi_A\Phi'$) = 1;
+		case $\exists{\Phi_1}_A \mathcal{U} \Phi_2$:
+			CheckEU(s, A, $\Phi_1, \Phi_2$);
+		case $\forall{\Phi_1}_A \mathcal{U} \Phi_2$:
+			CheckAU(s, A, $\Phi_1, \Phi_2$);
+	$\rbrace$
+$\rbrace$
+\end{lstlisting}
+
+L'implementazione in Code \ref{check}, affronta in modo ricorsivo tutte le formule previste dalla sintassi da aCTL.
+Nel caso delle proprietà $\exists{\Phi_1}_A \mathcal{U} \Phi_2$ e $\forall{\Phi_1}_A \mathcal{U} \Phi_2$, l'implementazione è stata suddivisa nelle funzioni dedicate CheckEU e CheckAU.
+\\
+
+\begin{lstlisting}[mathescape, caption=Implementazione di CheckEU]
+CheckEU(s, A, $\Phi_1$, $\Phi_2$) $\lbrace$
+	V = $\emptyset$; 							// stati visitati
+	E = $\lbrace s \rbrace$; 							// stati in corso di visita
+	goal = $\bullet$;
+	while (goal == $\bullet \; \wedge \; E \neq \emptyset $) $\lbrace$
+		s'= pick(E);
+		E = E \ $\lbrace$s'$\rbrace$;
+		V = V $\cup$ $\lbrace$s'$\rbrace$;
+		Check(s', $\Phi_2$);
+		if (info(s', $\Phi_2$) == 1) then $\lbrace$
+			goal = s';
+			break;
+		$\rbrace$
+		Check(s', $\Phi_1$);
+		if (info(s', $\Phi_1$) == 1) then $\lbrace$
+			E = E $\cup \; \lbrace$s'' | $\exists \; \alpha \in A: s' \xrightarrow{\alpha}s'' \rbrace$ \ V;
+		$\rbrace$	
+	$\rbrace$
+	if (goal $\neq \; \bullet$) then
+		info(s, $\exists{\Phi_1}_A \mathcal{U} \Phi_2$) = 1;
+	else
+		info(s, $\exists{\Phi_1}_A \mathcal{U} \Phi_2$) = 0;
+$\rbrace$
+\end{lstlisting}
+
+Il codice precedente esegue una visita (parziale) in profondità dalla radice $s$. La ricerca viene interrotta appena viene trovato uno stato $s$ che soddisfa $\exists{\Phi_1}_A \mathcal{U} \Phi_2$, e cioè quando info($s$, $\exists{\Phi_1}_A \mathcal{U} \Phi_2$) = 1, oppure quando viene trovato uno stato s che soddisfa $\Phi_2$. Se info($s$, $\exists{\Phi_1}_A \mathcal{U} \Phi_2$) = 0, oppure se sia $\Phi_1$ che $\Phi_2$ non sono soddisfatti da uno stato s, allora non è necessario proseguire.
+Al fine di implementare un ricerca in profondità, la struttura E mantiene traccia degli stati in corso di visita e viene gestita in modalità LIFO.
+
+
+Ignorando il tempo richiesto per processare le chiamate alla funzione di Check, possiamo osservare che il tempo di esecuzione di CheckEU è di $\mathcal{O}(|\mathcal{T}|)$. Per questo motivo nel caso in cui si abbiano più formule annidate del tipo $\exists[\mathcal{\_U\_}]$ non è possibile effettuare model checking in tempo lineare. 
+
+Consideriamo per esempio la formula $\exists{f_1}_A \mathcal{U} f_2$ dove $f_1$ e $f_2$ contengono a loro volta sottoformule del tipo $\exists[\mathcal{\_U\_}]$. Per decidere se $\mathcal{T}, s \models \exists{f_1}_A \mathcal{U} f_2$, nel caso peggiore potrebbe essere necessario controllare $f_1$ e $f_2$ per ogni stato e ognuna di queste ricerche potrebbe richiedere un attraversamento completo del sistema di transizioni impiegando un tempo quadratico\cite{ALMC}.
+
+Per poter migliorare le performance di CheckEU è necessario provvedere  a memorizzare nella struttura	 di info maggiori informazioni sulla propietà in esame. Nell'implementazione precedente infatti la struttura di info veniva aggiornata solamente per lo stato di s. La funzione può essere quindi modificata per salvare informazioni sulla validità della proprietà per tutti gli stati visitati durante l'esecuzione di CheckEU.
+Una possibile modifica di CheckEU viene mostrata in seguito.
+\\
+\begin{lstlisting}[mathescape, caption=Implementazione modificata di CheckEU]
+CheckEU(s, A, $\Phi_1$, $\Phi_2$) $\lbrace$
+	V = $\emptyset$; 							// stati visitati
+	E = $\lbrace s \rbrace$; 							// stati in corso di visita
+	goal = $\bullet$;
+	while (goal == $\bullet \; \wedge \; E \neq \emptyset $) $\lbrace$
+		s'= pick(E);
+		E = E \ $\lbrace$s'$\rbrace$;
+		V = V $\cup$ $\lbrace$s'$\rbrace$;
+		Check(s', $\Phi_2$);
+		if (info(s', $\Phi_2$) == 1) then $\lbrace$
+			goal = s';
+			break;
+		$\rbrace$
+		Check(s', $\Phi_1$);
+		if (info(s', $\Phi_1$) == 1) then $\lbrace$
+			E = E $\cup \; \lbrace$s'' | $\exists \; \alpha \in A: s' \xrightarrow{\alpha}s'' \rbrace$ \ V;
+		$\rbrace$	
+	$\rbrace$
+	if (goal == $\bullet$) then $\lbrace$
+		foreach s' $\in$ V										
+			info(s, $\exists{\Phi_1}_A \mathcal{U} \Phi_2$) = 0;
+	$\rbrace$ else	$\lbrace$								
+		foreach s' in $\in$ V $\lbrace$
+			if s $\stackrel{*}{\rightsquigarrow}$ goal then
+				info(s, $\exists{\Phi_1}_A \mathcal{U} \Phi_2$) = 1;
+			else
+				info(s, $\exists{\Phi_1}_A \mathcal{U} \Phi_2$) = 0;
+		$\rbrace$
+	$\rbrace$
+$\rbrace$
+\end{lstlisting}
+
+La parte terminale della funzione è stata modificata per aggiornare tutti i nodi visitati durante l'esecuzione dell'algoritmo.
+Se al termine di CheckEU la variabile di goal è ancora uguale a $\bullet$, significa che nessun cammino soddisfa la proprietà in esame. Se invece la variabile di goal è stata modificata, significa che conterrà al suo interno lo stato terminale del cammino che soddisfa la proprietà. Indicando con  s $\stackrel{*}{\rightsquigarrow}$ goal il cammino dallo stato di partenza a quello di goal, si aggiorna lungo il cammino la variabile info(s, $\exists{\Phi_1}_A \mathcal{U} \Phi_2$) = 1, ponendola pari a 0 per tutti gli stati che non ne fanno parte.
+Il cammino può essere ricavato risalendo all'indietro dallo stato di goal qualora vengano memorizzate anche le transizioni inverse.
+Un metodo alternativo alla memorizzazione delle transizioni inverse è quello proposto da Vegauwen e Lewi \cite{ALMC} che incorpora il calcolo del cammino all'interno della ricerca depth-first.
+
+L'implementazione della funzione di CheckAU è molto più semplice di quella di CheckEU. Infatti nel caso in cui, durante una ricerca depth-first, venga trovato un cammino ciclico che soddisfa $\Phi_1$ ma non $\Phi_2$ possiamo concludere che la formula $\forall{\Phi_1}_A \mathcal{U} \Phi_2$ è falsa per tutti gli stati analizzati.
+\\
+\begin{lstlisting}[mathescape, caption=Implementazione di CheckAU]
+CheckAU(s, A, $\Phi_1$, $\Phi_2$) $\lbrace$
+	V = $\emptyset$; 							// stati visitati
+	E = $\lbrace s \rbrace$; 							// stati in corso di visita
+	goal = $\bullet$;
+	while (goal == $\bullet \; \wedge \; E \neq \emptyset $) $\lbrace$
+		s'= pick(E);
+		E = E \ $\lbrace$s'$\rbrace$;
+		V = V $\cup$ $\lbrace$s'$\rbrace$;
+		Check(s', $\Phi_2$);
+		// se info = 1, il ramo e' verificato
+		if (info(s', $\Phi_2$) == 0) then $\lbrace$
+			Check(s', $\Phi_1$);
+			if (info(s', $\Phi_1$) == 0) then $\lbrace$
+				goal = 0;
+				break;							// esce dal ciclo
+			$\rbrace$ else $\lbrace$
+				int(s') = $\lbrace \; \alpha \; |\; \exists\; s' \xrightarrow{\alpha}s'' \rbrace$;
+				if (int(s') $\nsubseteq$ A) $\lbrace$
+					goal = 0;
+					break;						// esce dal ciclo
+				$\rbrace$
+				E = E $\cup \; \lbrace$s'' | $\exists \; \alpha \in A: s' \xrightarrow{\alpha}s'' \rbrace$ \ V;
+			$\rbrace$	
+		$\rbrace$
+	$\rbrace$
+	if (goal == 0) then
+		info(s, $\forall{\Phi_1}_A \mathcal{U} \Phi_2$) = 0;
+	else
+		info(s, $\forall{\Phi_1}_A \mathcal{U} \Phi_2$) = 1;
+$\rbrace$
+\end{lstlisting}
+
+Nel caso in cui si voglia salvare le informazioni ricavate su tutti i nodi visitati è sufficiente modificare la funzione nel modo seguente.
+\\
+\begin{lstlisting}[mathescape]
+CheckAU(s, A, $\Phi_1$, $\Phi_2$) $\lbrace$
+	V = $\emptyset$; 							// stati visitati
+	E = $\lbrace s \rbrace$; 							// stati in corso di visita
+	goal = $\bullet$;
+	while (goal == $\bullet \; \wedge \; E \neq \emptyset $) $\lbrace$
+		s'= pick(E);
+		E = E \ $\lbrace$s'$\rbrace$;
+		V = V $\cup$ $\lbrace$s'$\rbrace$;
+		Check(s', $\Phi_2$);
+		// se info = 1, il ramo e' verificato
+		if (info(s', $\Phi_2$) == 0) then $\lbrace$
+			Check(s', $\Phi_1$);
+			if (info(s', $\Phi_1$) == 0) then $\lbrace$
+				goal = 0;
+				break;							// esce dal ciclo
+			$\rbrace$ else $\lbrace$
+				int(s') = $\lbrace \; \alpha \; |\; \exists\; s' \xrightarrow{\alpha}s'' \rbrace$;
+				if (int(s') $\nsubseteq$ A) $\lbrace$
+					goal = 0;
+					break;						// esce dal ciclo
+				$\rbrace$
+				E = E $\cup \; \lbrace$s'' | $\exists \; \alpha \in A: s' \xrightarrow{\alpha}s'' \rbrace$ \ V;
+			$\rbrace$	
+		$\rbrace$
+	$\rbrace$
+	if (goal == 0) then
+		foreach s'' $\in$ V:
+			info(s'', $\forall{\Phi_1}_A \mathcal{U} \Phi_2$) = 0;
+	else
+		foreach s'' $\in$ V:
+			info(s'', $\forall{\Phi_1}_A \mathcal{U} \Phi_2$) = 1;
+$\rbrace$
+\end{lstlisting}

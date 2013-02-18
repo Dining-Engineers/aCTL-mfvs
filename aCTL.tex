@@ -1,0 +1,174 @@
+\section{Action-based Computation Tree Logic - (aCTL)}
+Abbiamo visto che un sistema può essere modellato per mezzo dei sistemi di transizione etichettati (o LTS). Adesso, abbiamo bisogno di un linguaggio formale che ci permetta di scrivere in modo non ambiguo le proprietà del sistema.
+
+\subsection{Logiche temporali}
+Esistono diversi tipi di logiche, tra cui le più note sono la logica modale e la logica temporale. La logica modale permette di esprimere proprietà locali di uno stato. Ad esempio: \emph{``Andrea e Marco sono felici?''}. Il limite di questa logica è che non possiamo sapere se Andrea e Marco continueranno ad essere felici. Questo limite può essere superato attraverso l'utilizzo di logiche temporali.
+
+Le logiche temporali possono essere di due tipi:
+
+\begin{itemize}
+ \item logiche temporali lineari;
+ \item logiche temporali branching.
+\end{itemize}
+
+\noindent Nel seguito parleremo di aCTL che è una logica temporale di tipo branching \cite{NoteProf}.
+
+\subsection{Logica aCTL}
+aCTL sta per Action-based Computation Tree Logic. È una logica temporale di tipo branching, ovvero il tempo è modellato con una struttura ad albero e quindi l'evoluzione futura non è determinata in modo univoco. Questo approccio si avvicina alla vera esecuzione di un programma in cui alcune scelte vengono fatte durante l'esecuzione del processo.
+Le formule di aCTL si riferiscono esplicitamene alle azioni che il sistema può fare.
+
+\clearpage
+\subsubsection{Sintassi di aCTL}
+Distinguiamo due categorie sintattiche:
+
+\begin{itemize}
+ \item \emph{state formule} $\ \phi$;
+ \item \emph{path formule} $\ \varphi$:
+\end{itemize}
+
+\noindent Il linguaggio è generato dalla seguente grammatica:
+\\
+
+%\begin{center}
+\textbf{{State-formula}}
+%\end{center}
+
+\begin{equation}
+ \phi ::= true\ |\ \neg \phi\ |\ AP\ |\ \phi_1 \ \wedge \phi_2\ |\ \exists\varphi\ |\ \forall\varphi
+\end{equation}
+
+\begin{itemize}
+ \item $true\ $: è l'assioma \emph{vero};
+ 
+ \item $AP\ $: sono le proposizioni atomiche. Ad esempio: la state formula $\phi = a$ è vera per lo stato $\ s\ $ se $\ a \in L(s) \subseteq AP$;
+ 
+ \item $\neg \phi\ $: è la negazione di $\phi$;
+ 
+ \item $\phi_1 \wedge \phi_2\ $: è la congiunzione di $\phi_1$ e $ \phi_2\ $;
+ 
+ \item $\exists\varphi\ $: è il quantificatore esistenziale. Il suo significato è che esiste almeno un cammino (o computazione) che partendo dallo stato attuale permette di raggiungere uno stato che soddisfa $\varphi$;
+ 
+ \item $\forall\varphi\ $: è il quantificatore universale. Il suo significato è che tutti i cammini che partono dallo stato corrente soddisfano la proprietà $\varphi$.
+\end{itemize}
+
+
+%\begin{center}
+\textbf{{Path-formula}}
+%\end{center}
+
+\begin{equation}
+ \varphi ::= X_A \phi\ |\ \phi\ {}_{A}\mathcal{U}\ \psi\ |\ \phi\ {}_{A}\mathcal{U}_B\ \psi
+\end{equation}
+
+\begin{itemize}
+ \item $X_A \phi\ $: è l'operatore \emph{next} associato all'azione $A$. La formula è soddisfatta se a partire dallo stato corrente è possibile fare un'azione $A$ ed andare in uno stato che soddisfa la proprietà $\ \phi$;
+ 
+ \item $\phi\ {}_{A}\mathcal{U}\ \psi\ $: è l'operatore \emph{until} associato all'azione $\ A$. La formula è soddisfatta se si percorre un cammino (anche nullo) eseguendo azioni in $\ A$ e tutti gli stati soddisfano la proprietà $\ \phi$ fino a quando non si arriva in uno stato che soddisfa la proprietà $\ \psi$;
+ 
+ \item $\phi\ {}_{A}\mathcal{U}_B\ \psi\ $: è loperatore \emph{until} associato all'azione $\ A$ e $\ B$. La formula è soddisfatta se si percorre un cammino (anche nullo) eseguendo azioni in $\ A$ e tutti gli stati soddisfano la proprietà $\ \phi$ fino a quando non si arriva in uno stato che soddisfa la proprietà $\ \psi$ attraverso l'esecuzione di una azione in $\ B$.
+\end{itemize}
+
+Le formule aCTL sono interpretate sui sistemi di transizione etichettati. In particolare è bene fare una distinzione tra le state formule e path formule. Le state formule sono valutate sugli stati del LTS, viceversa le path formule sono valutate sui cammini o computazioni del LTS.
+Come si può notare, una path formula può occorrere in una state formula come parametro degli operatori $\exists\ $ e $\forall\ $.
+
+
+Esistono altri operatori, detti operatori derivati, che permettono di riscrivere le formule in altre formule equivalenti che possono risultare più comprensibili.
+
+\begin{alignat}{4}
+false\  & \equiv\ \neg true \\
+\phi_1 \wedge \phi_2\ & \equiv\ \neg\ ( \neg\phi_1 \vee \neg\phi_2 ) \\
+\phi_1 \Rightarrow \phi_2\ & \equiv\ \neg\phi_1 \vee \phi_2\ \\
+\phi_1 \Leftrightarrow \phi_2\ & \equiv\ (\phi_1 \Rightarrow \phi_2) \wedge\ (\phi_2 \Rightarrow \phi_1)  
+\end{alignat}
+
+
+\clearpage
+\subsubsection{Operatori}
+Diamo ora una classificazione degli operatori. Gli operatori possono essere di due tipi: logici e temporali.
+\\
+
+\textbf{Operatori logici}
+
+Gli operatori logici sono i seguenti:
+
+\begin{equation}
+  \neg,\ \wedge,\ \vee,\ \Rightarrow,\ \Leftrightarrow
+\end{equation}
+
+
+\textbf{Operatori temporali}
+
+Gli operatori temporali sono
+
+\begin{equation}
+  \forall,\ \exists,\ X,\ U,\ \Diamond,\ \Box
+\end{equation}
+
+
+
+in particolare gli operatori $\exists\ $ e $\forall\ $ sono dei quantificatori di cammino.
+
+\subsubsection{Semantica}
+
+Come anticipato le formule aCTL sono interpretate sui sistemi di transizione etichettati. Un sistema di transizioni, come abbiamo visto, è una sestupla $TS\ =\ \langle\ S,\ Act,\ \rightarrow,\ I,\ AP,\ L\ \rangle$ dove $S$ è l'insieme degli stati, Act è l'insieme dei simboli che rappresentano le azioni, $\rightarrow$ è l'insieme delle relazioni di transizione, I è l'insieme degli stati iniziali, AP è l'insieme delle proprietà atomiche e L è la funzione di labeling.
+
+Sia quindi TS tale sistema di transizioni con s $\in$ S e $\Phi \in F$ dove F è l'insieme delle formule aCTL.
+La semantica di una formula temporale è definita dalla  soddisfazione della seguente relazione:
+
+\begin{equation}
+	\models : ( TS \; \times \; S \; \times \; F ) \rightarrow \lbrace true, false \rbrace
+\end{equation}
+
+\clearpage
+Una proposizione atomica è vera (\emph{true}) in uno stato $s_i$ quando:
+
+\begin{equation}
+TS, s_i \models p \; \text{se e solo se}\; p \in L(s_i)
+\end{equation}
+
+
+La relazione di implicazione semantica può essere definita per induzione strutturale su $\Phi$.
+
+\begin{alignat}{4}
+TS, s_i \models & \; true \; 			&& \quad  && 				\forall  s \in S \\
+TS, s_i \models & \; \neg \Phi  			&& \quad \Leftrightarrow \quad &&	\neg TS, s_i  \models \Phi \\
+TS, s_i \models & \; \Phi \wedge \Psi 		&&\quad \Leftrightarrow \quad && 	TS, s_i \models \Phi \text{ and } TS , s_i \models \Psi \\
+TS, s_i \models & \; \Phi \vee \Psi  		&&\quad \Leftrightarrow \quad &&	TS, s_i \models \Phi \text{ or } TS , s_i \models \Psi \\
+TS, s_i \models & \; \Phi \Rightarrow \Psi  	&&\quad \Leftrightarrow \quad && (\neg TS, s_i \models \Phi \text{ or } TS , s_i \models \Psi ) \\
+TS, s_i \models & \; \Phi \Leftrightarrow \Psi  	&& \quad \Leftrightarrow \quad 	& \begin{split} &( TS, s_i \models \Phi \text{ or } TS , s_i \models \Psi ) \\ & \vee (\neg TS, s_i \models \Phi \text{ or } \neg TS , s_i \models \Psi )\end{split} 
+\end{alignat}
+
+Gli operatori temporali, considerando $\pi = (s_0, s_1, \dots, s_n) \in Path(s)$ un generico cammino avente origine dallo stato $s_i \in S$, hanno la seguente semantica:
+
+\begin{alignat}{4}
+TS, s_i \models & \; \forall \;  \varphi 					&& \quad \Leftrightarrow \quad &&  	\forall \pi \in Path(s_i):  \pi \models \varphi  \\
+TS, s_i \models & \; \exists \;  \varphi					&& \quad \Leftrightarrow \quad &&	\exists \pi \in Path(s_i):  \pi \models \varphi
+\end{alignat}
+
+\clearpage
+Rimane infine da definire la semantica per gli operatori di $\chi$ e di $\mathcal{U}$ lungo un cammino $\pi $:
+
+\begin{alignat}{4}
+\pi = s_0 \alpha_0 s_1 \dots  \models & \; \chi_A \; \Phi 								&& \quad \Leftrightarrow \quad &&  	\alpha_0 \in A \text{ and } TS,s_1 \models \Phi \\
+\pi =  s_0 \alpha_0 s_1 	 \dots \alpha_{n-1} s_n \models & \; \Phi_A \; \mathcal{U} \;  \Psi		&& \quad \Leftrightarrow \quad & \begin{split} & \exists j \ge 0: \; \pi(j) \models \Psi \text{ and } \\ &  \forall 0 \le i < j:  \; \pi(i) \models \Phi \text{ and }  \alpha_i \in A )\end{split} \\
+\pi =  s_0 \alpha_0 s_1 	 \dots \alpha_{n-1} s_n \models & \; \Phi_A \; \mathcal{U}_B \;  \Psi	&& \quad \Leftrightarrow \quad & \begin{split} & \exists j \ge 1: \; \pi(j) \models \Psi \text{ and } \alpha_{j-1} \in B \\ &  \forall 0 \le i < j:  \; \pi(i) \models \Phi \text{ and } \\ &  \forall 0 \le i < j-1 \; \alpha_i \in A \end{split} 
+\end{alignat}
+
+In base a quanto è stato appena enunciato è facile verificare anche le formule 
+\begin{alignat}{4}
+TS, s_i \models & \; \forall \; \Box \; \Phi \\
+TS, s_i \models & \; \exists \; \Box \; \Phi \\
+TS, s_i \models  & \; \forall \; \Diamond \; \Phi \\
+TS, s_i \models & \; \exists \; \Diamond	\; \Phi	 
+%TS, s_i \models & \; \forall \; [\Phi_1 \; \mathcal{U} \; \Phi_2]
+\end{alignat}
+
+Queste formule sono infatti sono facilmente ricavabili nel modo seguente:
+
+\begin{alignat}{4}
+\exists\ \Diamond_A \phi\ 			&\equiv\ \exists\ (true\ {}_{A}\mathcal{U}\ \phi ) \\ 
+\forall\ \Diamond_A \phi\ 			&\equiv\ \forall\ (true\ {}_{A}\mathcal{U}\ \phi ) \\
+\exists\ \Box_A \phi\			&\equiv\ \neg\ \forall\ \Diamond_A\ \neg\ \phi \\
+\forall\ \Box_A \phi\ 			&\equiv\ \neg\ \exists\ \Diamond_A\ \neg\ \phi  \\
+\forall [ \Phi \; \mathcal{U} \; \Psi ] 	&\equiv \neg \exists \Box \neg \Psi \wedge \neg \exists (\neg \Psi \mathcal{U} (\neg \Phi \wedge \neg \Psi))
+\end{alignat}
